@@ -1,6 +1,12 @@
-# Amiriel React
+<p align="center">
+  <img src="https://amiriel.com/logo/amiriel_256x256.webp" alt="Amiriel logo" width="96" height="96" />
+</p>
 
-React components for Amiriel letter documents.
+<h1 align="center">Amiriel React</h1>
+
+<p align="center">
+  React components for Amiriel letter documents.
+</p>
 
 `@amiriel/react` provides a React implementation of the Amiriel document
 renderer and a controlled editor shell. It is built on `amiriel`, so the
@@ -29,19 +35,11 @@ text overflow inspection, should be added incrementally.
 
 ## Install
 
-Pre-release builds are published under the `beta` dist-tag:
-
 ```bash
 npm install @amiriel/react@beta react
 pnpm add @amiriel/react@beta react
 yarn add @amiriel/react@beta react
 bun add @amiriel/react@beta react
-```
-
-After the first stable release, install without the tag:
-
-```bash
-npm install @amiriel/react react
 ```
 
 Import the stylesheet once:
