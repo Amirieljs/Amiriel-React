@@ -3,4 +3,4 @@ export { AmirielBodyRenderer, type AmirielBodyRendererProps } from "./components
 export { AmirielMediaLightbox, type AmirielMediaLightboxProps } from "./components/AmirielMediaLightbox";
 export { AmirielMediaVideo, type AmirielMediaVideoProps } from "./components/AmirielMediaVideo";
 
-export * from "@amiriel/core";
+export * from "amiriel";

@@ -37,7 +37,7 @@ import {
   type AmirielTextBlock,
   type AmirielTextColor,
   type AmirielThemeDefinition,
-} from "@amiriel/core";
+} from "amiriel";
 import { AmirielBodyRenderer } from "./AmirielBodyRenderer";
 import { AmirielMediaLightbox } from "./AmirielMediaLightbox";
 import { AmirielMediaVideo } from "./AmirielMediaVideo";

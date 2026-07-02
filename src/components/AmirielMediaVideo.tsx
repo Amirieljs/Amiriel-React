@@ -1,5 +1,5 @@
 import type { VideoHTMLAttributes } from "react";
-import { formatVideoDuration, type AmirielMedia } from "@amiriel/core";
+import { formatVideoDuration, type AmirielMedia } from "amiriel";
 
 export interface AmirielMediaVideoProps extends Omit<VideoHTMLAttributes<HTMLVideoElement>, "src" | "poster"> {
   media: AmirielMedia;
