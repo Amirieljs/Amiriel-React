@@ -1,6 +1,6 @@
 {
   "name": "@amiriel/react",
-  "version": "0.0.1-beta.6",
+  "version": "0.0.1-beta.7",
   "description": "React components for Amiriel letter documents.",
   "type": "module",
   "license": "MIT",
@@ -45,7 +45,7 @@
     "./src/style.css"
   ],
   "dependencies": {
-    "@amiriel/core": "^0.0.1-beta.6"
+    "@amiriel/core": "^0.0.1-beta.7"
   },
   "peerDependencies": {
     "react": ">=18.2.0 || >=19.0.0"
