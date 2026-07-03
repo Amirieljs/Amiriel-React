@@ -30,7 +30,7 @@ import {
   type AmirielTextBlock,
   type AmirielThemeDefinition,
   type AmirielLocale,
-} from "amiriel";
+} from "@amiriel/core";
 import { AmirielMediaLightbox } from "./AmirielMediaLightbox";
 import { AmirielMediaVideo } from "./AmirielMediaVideo";
 

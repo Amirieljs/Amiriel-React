@@ -9,7 +9,7 @@
 </p>
 
 `@amiriel/react` provides a React implementation of the Amiriel document
-renderer and a controlled editor shell. It is built on `amiriel`, so the
+renderer and a controlled editor shell. It is built on `@amiriel/core`, so the
 document model, themes, labels, and normalization rules stay aligned with the
 Vue package.
 
@@ -26,7 +26,7 @@ The full hosted product lives at [amiriel.com](https://amiriel.com).
 - Controlled React editor shell for pages, themes, text blocks, paper size, and media list
 - Image/video media lightbox
 - Inline video component with duration badge
-- Shared document model from `amiriel`
+- Shared document model from `@amiriel/core`
 - TypeScript declarations
 
 The current React editor is a usable foundation. Advanced parity with the Vue
@@ -48,7 +48,7 @@ Import the stylesheet once:
 import "@amiriel/react/style.css";
 ```
 
-The package depends on `amiriel` for the shared document model and declares
+The package depends on `@amiriel/core` for the shared document model and declares
 `react` as a peer dependency.
 
 ## Usage
@@ -88,6 +88,7 @@ export function LetterComposer() {
         value={document}
         onChange={setDocument}
         locale="en"
+        showGithubLink
         onMediaRequest={onMediaRequest}
       />
 
@@ -109,7 +110,7 @@ authentication, routing, database, or delivery workflows.
 | `AmirielBodyRenderer` | Read-only React renderer |
 | `AmirielMediaLightbox` | Image/video lightbox |
 | `AmirielMediaVideo` | Inline video component |
-| Core types and helpers | Re-exported from `amiriel` |
+| Core types and helpers | Re-exported from `@amiriel/core` |
 
 ## Editor Props
 
@@ -121,6 +122,8 @@ authentication, routing, database, or delivery workflows.
 | `locale` | `"en"` | Built-in label locale: `en` or `zh` |
 | `labels` | none | Partial override for UI labels |
 | `themes` | none | Override built-in themes or register custom paper themes |
+| `showGithubLink` | `true` | Show GitHub link on the text-block toolbar |
+| `githubUrl` | `https://github.com/Amirieljs/Amiriel-React` | Target URL for the GitHub button |
 | `defaultPaperSize` | `{ width: 720, height: 520 }` | Fallback paper size |
 | `paperSizeLimits` | `{ minWidth: 320, maxWidth: 1600, minHeight: 240, maxHeight: 2200 }` | Paper resizing bounds |
 | `paperResizable` | `true` | Allow users to edit paper width and height |
@@ -174,13 +177,14 @@ function Editor({ document, onChange }: {
 ## Package Architecture
 
 This repository is the React implementation. The shared framework-agnostic core
-lives in [`amiriel`](https://github.com/Amirieljs/Amiriel), and the Vue
+lives in [`@amiriel/core`](https://github.com/Amirieljs/Amiriel-Core), the meta package
+[`amiriel`](https://github.com/Amirieljs/Amiriel) re-exports it, and the Vue
 implementation lives in [`@amiriel/vue`](https://github.com/Amirieljs/Amiriel-Vue).
 
 ## Release Sync
 
 This repository listens for `core-release` events dispatched from
-`Amirieljs/Amiriel`. On sync, GitHub Actions upgrades `amiriel`, runs checks,
+`Amirieljs/Amiriel-Core`. On sync, GitHub Actions upgrades `@amiriel/core`, runs checks,
 bumps the React package beta version, publishes to npm, and creates a GitHub
 release.
 

@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,10 +38,13 @@ import {
   type AmirielTextBlock,
   type AmirielTextColor,
   type AmirielThemeDefinition,
-} from "amiriel";
+} from "@amiriel/core";
 import { AmirielBodyRenderer } from "./AmirielBodyRenderer";
+import { GithubMarkIcon } from "./GithubMarkIcon";
 import { AmirielMediaLightbox } from "./AmirielMediaLightbox";
 import { AmirielMediaVideo } from "./AmirielMediaVideo";
+
+const DEFAULT_GITHUB_URL = "https://github.com/Amirieljs/Amiriel-React";
 
 export interface AmirielBodyEditorProps {
   value: AmirielDocument;
@@ -51,6 +55,8 @@ export interface AmirielBodyEditorProps {
   labels?: Partial<AmirielLabels>;
   themes?: AmirielThemeDefinition[];
   accept?: string;
+  showGithubLink?: boolean;
+  githubUrl?: string;
   onMediaRequest?: (request: AmirielMediaRequest<File>) => void | Promise<void>;
   onMediaRemoved?: (media: AmirielMedia) => void;
   defaultPaperSize?: AmirielPaperSize;
@@ -87,6 +93,8 @@ export function AmirielBodyEditor({
   labels,
   themes,
   accept = "image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime",
+  showGithubLink = true,
+  githubUrl = DEFAULT_GITHUB_URL,
   onMediaRequest,
   onMediaRemoved,
   defaultPaperSize,
@@ -96,6 +104,8 @@ export function AmirielBodyEditor({
   style,
 }: AmirielBodyEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRefs = useRef(new Map<string, HTMLTextAreaElement>());
+  const pendingFocusBlockIdRef = useRef("");
   const [selectedPageId, setSelectedPageId] = useState("");
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -137,6 +147,17 @@ export function AmirielBodyEditor({
       setSelectedPageId(draft.pages[0]?.id ?? "");
     }
   }, [draft.pages, selectedPageId]);
+
+  useLayoutEffect(() => {
+    const blockId = pendingFocusBlockIdRef.current;
+    if (!blockId) return;
+    const textarea = textareaRefs.current.get(blockId);
+    if (!textarea) return;
+    textarea.focus();
+    const end = textarea.value.length;
+    textarea.setSelectionRange(end, end);
+    pendingFocusBlockIdRef.current = "";
+  }, [draft, selectedPageId]);
 
   function commit(updater: (next: AmirielDocument) => void, nextSelectedPageId?: string) {
     const next = normalizeDocument(value, normalizeOptions);
@@ -207,11 +228,13 @@ export function AmirielBodyEditor({
   function addTextBlock() {
     if (readOnly || !selectedPage) return;
     if ((selectedPage.textBlocks ?? []).length >= resolvedLimits.maxTextBlocksPerPage) return;
+    const blockId = createAmirielId("text");
+    pendingFocusBlockIdRef.current = blockId;
     commit((next) => {
       const page = next.pages.find((item) => item.id === selectedPage.id);
       if (!page) return;
       const block: AmirielTextBlock = {
-        id: createAmirielId("text"),
+        id: blockId,
         x: 8,
         y: 18 + (page.textBlocks ?? []).length * 10,
         width: 56,
@@ -492,6 +515,10 @@ export function AmirielBodyEditor({
                 {(selectedPage?.textBlocks ?? []).map((block) => (
                   <div key={block.id} className="amiriel-react-editor__block">
                     <textarea
+                      ref={(element) => {
+                        if (element) textareaRefs.current.set(block.id, element);
+                        else textareaRefs.current.delete(block.id);
+                      }}
                       value={block.text}
                       placeholder={resolvedLabels.textBlockPlaceholder}
                       readOnly={readOnly}
@@ -565,6 +592,18 @@ export function AmirielBodyEditor({
                       >
                         U
                       </button>
+                      {!readOnly && showGithubLink ? (
+                        <a
+                          href={githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="amiriel-react-editor__github-link"
+                          aria-label={resolvedLabels.viewOnGithub}
+                          title={resolvedLabels.viewOnGithub}
+                        >
+                          <GithubMarkIcon />
+                        </a>
+                      ) : null}
                       {!readOnly ? (
                         <button type="button" className="is-danger" onClick={() => removeTextBlock(block.id)}>
                           {resolvedLabels.deleteTextBlock}

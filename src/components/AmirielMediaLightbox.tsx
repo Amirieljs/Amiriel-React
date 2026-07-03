@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { AmirielMedia } from "amiriel";
+import type { AmirielMedia } from "@amiriel/core";
 import { AmirielMediaVideo } from "./AmirielMediaVideo";
 
 export interface AmirielMediaLightboxProps {
