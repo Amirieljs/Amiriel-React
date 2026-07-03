@@ -181,18 +181,6 @@ lives in [`@amiriel/core`](https://github.com/Amirieljs/Amiriel-Core), the meta 
 [`amiriel`](https://github.com/Amirieljs/Amiriel) re-exports it, and the Vue
 implementation lives in [`@amiriel/vue`](https://github.com/Amirieljs/Amiriel-Vue).
 
-## Release Sync
-
-This repository listens for `core-release` events dispatched from
-`Amirieljs/Amiriel-Core`. On sync, GitHub Actions upgrades `@amiriel/core`, runs checks,
-bumps the React package beta version, publishes to npm, and creates a GitHub
-release.
-
-Configure these secrets:
-
-- `NPM_TOKEN`: npm automation token used for publishing
-- `AMIRIELJS_SYNC_TOKEN`: GitHub token with permission to push sync commits and tags
-
 ## License
 
 MIT. The React editor package is open source and can be used commercially. The
