@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@amiriel/core':
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.4
+        version: 0.0.4
     devDependencies:
       '@types/react':
         specifier: ^19.2.7
@@ -24,8 +24,8 @@ importers:
 
 packages:
 
-  '@amiriel/core@0.0.2':
-    resolution: {integrity: sha512-r+AUh08A3MuzaLkXXsgA85ZfNEmRhOFJGyvIW+NfjmXaKvFNecXsMHHN8XexowQSro9TaF6wxG3rndq4ACiu9g==}
+  '@amiriel/core@0.0.4':
+    resolution: {integrity: sha512-kiv9ZZGnlkOGP2CfNioELuU51EdwAJnRMJJcdDsUkmnprj9ceNaol0Czh3w8jAikaRfVKvfOd4qbkjQrPAw4Pw==}
 
   '@types/react@19.2.17':
     resolution: {integrity: sha512-MXfmqaVPEVgkBT/aY0aGCkRWWtByiYQXo3xdQ8r5RzuFrPiRn8Gar2tQdXSUQ2GKV3bkXckek89V8wQBY2Q/Aw==}
@@ -44,7 +44,7 @@ packages:
 
 snapshots:
 
-  '@amiriel/core@0.0.2': {}
+  '@amiriel/core@0.0.4': {}
 
   '@types/react@19.2.17':
     dependencies:
