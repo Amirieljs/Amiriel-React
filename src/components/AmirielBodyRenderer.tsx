@@ -5,11 +5,13 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent,
 } from "react";
 import {
   AMIRIEL_FONT_STACKS,
   AMIRIEL_TEXT_COLORS,
   amirielThemeCssVars,
+  calloutStrokes,
   clamp,
   combinedPageText,
   findAmirielThemeDefinition,
@@ -51,6 +53,7 @@ export interface AmirielBodyRendererProps {
   className?: string;
   style?: CSSProperties;
   onMediaClick?: (media: AmirielMedia) => void;
+  onSurfacePoint?: (point: { x: number; y: number }) => void;
 }
 
 function usePaperScale(
@@ -98,7 +101,7 @@ function textBlockContentStyle(block: AmirielTextBlock, page?: AmirielPage): CSS
     fontSize: `${block.fontSize || 16}px`,
     fontWeight: block.bold ? 700 : undefined,
     fontStyle: block.italic ? "italic" : undefined,
-    textDecoration: block.underline ? "underline" : undefined,
+    textDecoration: block.underline || block.href ? "underline" : undefined,
     ...(block.color ? { color: AMIRIEL_TEXT_COLORS[block.color] } : {}),
   };
 }
@@ -130,6 +133,7 @@ export function AmirielBodyRenderer({
   className,
   style,
   onMediaClick,
+  onSurfacePoint,
 }: AmirielBodyRendererProps) {
   const paperFrameRef = useRef<HTMLElement | null>(null);
   const [lightboxMedia, setLightboxMedia] = useState<AmirielMedia | null>(null);
@@ -151,6 +155,21 @@ export function AmirielBodyRenderer({
   const sortedPages = useMemo(() => sortAmirielPages(normalized.pages), [normalized.pages]);
   const currentPage = sortedPages[pageIndex] ?? sortedPages[0];
   const currentTextBlocks = currentPage?.textBlocks ?? [];
+  const strokes = useMemo(
+    () => calloutStrokes(currentPage, activePaperSize.width, activePaperSize.height),
+    [activePaperSize.height, activePaperSize.width, currentPage],
+  );
+
+  function emitSurfacePoint(event: PointerEvent<HTMLElement>) {
+    if (!onSurfacePoint || event.button !== 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    event.preventDefault();
+    onSurfacePoint({
+      x: clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100),
+      y: clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100),
+    });
+  }
 
   const mediaById = useCallback((id: string) => normalized.media.find((item) => item.id === id), [normalized.media]);
 
@@ -214,15 +233,22 @@ export function AmirielBodyRenderer({
     <>
       {currentTextBlocks.length ? (
         <span className="amiriel-renderer__text-layer">
-          {currentTextBlocks.map((block) => (
-            <span
-              key={block.id}
-              className="amiriel-renderer__text-block"
-              style={{ ...textBlockStyle(block), ...textBlockContentStyle(block, currentPage) }}
-            >
-              {block.text}
-            </span>
-          ))}
+          {currentTextBlocks.map((block) => {
+            const linked = Boolean(block.href);
+            const Tag = linked ? "a" : "span";
+            return (
+              <Tag
+                key={block.id}
+                className={linked ? "amiriel-renderer__text-block is-link" : "amiriel-renderer__text-block"}
+                href={linked ? block.href : undefined}
+                target={linked ? "_blank" : undefined}
+                rel={linked ? "noopener noreferrer" : undefined}
+                style={{ ...textBlockStyle(block), ...textBlockContentStyle(block, currentPage) }}
+              >
+                {block.text}
+              </Tag>
+            );
+          })}
         </span>
       ) : (
         <p
@@ -249,6 +275,7 @@ export function AmirielBodyRenderer({
                 aria-label={resolvedLabels.viewMedia}
                 onClick={(event) => {
                   event.stopPropagation();
+                  if (onSurfacePoint) return;
                   openMedia(media);
                 }}
               >
@@ -267,6 +294,16 @@ export function AmirielBodyRenderer({
           })}
         </span>
       ) : null}
+      {strokes.length ? (
+        <svg className="amiriel-renderer__callouts" viewBox={`0 0 ${activePaperSize.width} ${activePaperSize.height}`} aria-hidden="true">
+          {strokes.map((stroke) => (
+            <g key={stroke.id}>
+              <line x1={stroke.x1} y1={stroke.y1} x2={stroke.x2} y2={stroke.y2} />
+              <path d={stroke.head} />
+            </g>
+          ))}
+        </svg>
+      ) : null}
     </>
   );
 
@@ -282,12 +319,12 @@ export function AmirielBodyRenderer({
             <div className="amiriel-renderer__head">
               <p className="amiriel-renderer__label">{title}</p>
             </div>
-            <div className="amiriel-renderer__content">{content}</div>
+            <div className="amiriel-renderer__content" onPointerDown={onSurfacePoint ? emitSurfacePoint : undefined}>{content}</div>
           </article>
         </div>
       ) : (
         <span ref={paperFrameRef as React.RefObject<HTMLSpanElement>} className="amiriel-renderer__layer-frame">
-          <span className="amiriel-renderer__layer-surface" style={paperSurfaceStyle}>
+          <span className="amiriel-renderer__layer-surface" style={paperSurfaceStyle} onPointerDown={onSurfacePoint ? emitSurfacePoint : undefined}>
             {content}
           </span>
         </span>

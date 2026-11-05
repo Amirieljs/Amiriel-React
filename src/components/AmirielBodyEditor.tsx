@@ -12,6 +12,7 @@ import {
   AMIRIEL_TEXT_COLORS,
   AMIRIEL_TEXT_COLOR_OPTIONS,
   amirielThemeCssVars,
+  calloutTargetFromPagePoint,
   createAmirielId,
   findAmirielThemeDefinition,
   formatAmirielLabel,
@@ -19,11 +20,14 @@ import {
   mediaSizeWithinPaper,
   mergeAmirielThemeDefinitions,
   normalizeDocument,
+  normalizeEditorLimits,
   normalizePaperSize,
   normalizePaperSizeLimits,
+  normalizeTextHref,
   resolveAmirielLabels,
   syncPageText,
   themeDefaultTextColorFor,
+  type AmirielCallout,
   type AmirielDocument,
   type AmirielEditorLimits,
   type AmirielFont,
@@ -110,6 +114,9 @@ export function AmirielBodyEditor({
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [lightboxMedia, setLightboxMedia] = useState<AmirielMedia | null>(null);
+  const [placingBlockId, setPlacingBlockId] = useState("");
+  const [linkDrafts, setLinkDrafts] = useState<Record<string, string>>({});
+  const [linkErrors, setLinkErrors] = useState<Record<string, string>>({});
 
   const normalizeOptions = useMemo(() => ({
     defaultPaperSize,
@@ -125,12 +132,7 @@ export function AmirielBodyEditor({
     () => amirielThemeCssVars(findAmirielThemeDefinition(draft.theme, themes)) as CSSProperties,
     [draft.theme, themes],
   );
-  const resolvedLimits = useMemo(() => ({
-    maxPages: limits?.maxPages ?? 20,
-    maxTextBlocksPerPage: limits?.maxTextBlocksPerPage ?? 4,
-    maxImages: limits?.maxImages ?? 3,
-    maxVideos: limits?.maxVideos ?? 1,
-  }), [limits]);
+  const resolvedLimits = useMemo(() => normalizeEditorLimits(limits), [limits]);
   const selectedPage = draft.pages.find((page) => page.id === selectedPageId) ?? draft.pages[0];
   const selectedPageIndex = Math.max(0, draft.pages.findIndex((page) => page.id === selectedPage?.id));
   const mediaCounts = {
@@ -259,6 +261,49 @@ export function AmirielBodyEditor({
       updater(block);
       syncPageText(page);
     });
+  }
+
+  function commitTextHref(blockId: string, raw: string) {
+    const href = normalizeTextHref(raw);
+    if (raw.trim() && !href) {
+      setLinkErrors((current) => ({ ...current, [blockId]: resolvedLabels.textBlockLinkInvalid }));
+      return;
+    }
+    setLinkErrors((current) => ({ ...current, [blockId]: "" }));
+    setLinkDrafts((current) => {
+      const next = { ...current };
+      delete next[blockId];
+      return next;
+    });
+    updateTextBlock(blockId, (next) => {
+      if (href) next.href = href;
+      else delete next.href;
+    });
+  }
+
+  function upsertCallout(blockId: string, point: { x: number; y: number }) {
+    if (readOnly || !selectedPage) return;
+    const target = calloutTargetFromPagePoint(selectedPage, point.x, point.y);
+    commit((next) => {
+      const page = next.pages.find((item) => item.id === selectedPage.id);
+      if (!page) return;
+      const existing = page.callouts?.find((callout) => callout.textBlockId === blockId);
+      const callout: AmirielCallout = existing
+        ? { ...existing, target }
+        : { id: createAmirielId("callout"), textBlockId: blockId, target };
+      page.callouts = [...(page.callouts ?? []).filter((item) => item.textBlockId !== blockId), callout];
+    });
+    setPlacingBlockId("");
+  }
+
+  function removeCallout(blockId: string) {
+    if (readOnly || !selectedPage) return;
+    commit((next) => {
+      const page = next.pages.find((item) => item.id === selectedPage.id);
+      if (!page) return;
+      page.callouts = (page.callouts ?? []).filter((callout) => callout.textBlockId !== blockId);
+    });
+    if (placingBlockId === blockId) setPlacingBlockId("");
   }
 
   function removeTextBlock(blockId: string) {
@@ -439,6 +484,7 @@ export function AmirielBodyEditor({
       <div className="amiriel-react-editor__layout">
         <div className="amiriel-react-editor__workspace">
           <div className="amiriel-react-editor__preview">
+            {placingBlockId ? <p className="amiriel-react-editor__empty">{resolvedLabels.calloutHint}</p> : null}
             <AmirielBodyRenderer
               document={draft}
               pageIndex={selectedPageIndex}
@@ -446,6 +492,10 @@ export function AmirielBodyEditor({
               labels={labels}
               themes={themes}
               interactive
+              defaultPaperSize={defaultPaperSize}
+              paperSizeLimits={paperSizeLimits}
+              paperResizable={paperResizable}
+              onSurfacePoint={placingBlockId ? (point) => upsertCallout(placingBlockId, point) : undefined}
             />
           </div>
         </div>
@@ -592,6 +642,19 @@ export function AmirielBodyEditor({
                       >
                         U
                       </button>
+                      <button
+                        type="button"
+                        className={placingBlockId === block.id ? "is-active" : ""}
+                        disabled={readOnly}
+                        onClick={() => setPlacingBlockId((current) => current === block.id ? "" : block.id)}
+                      >
+                        {resolvedLabels.addCallout}
+                      </button>
+                      {selectedPage?.callouts?.some((callout) => callout.textBlockId === block.id) ? (
+                        <button type="button" disabled={readOnly} onClick={() => removeCallout(block.id)}>
+                          {resolvedLabels.removeCallout}
+                        </button>
+                      ) : null}
                       {!readOnly && showGithubLink ? (
                         <a
                           href={githubUrl}
@@ -610,6 +673,19 @@ export function AmirielBodyEditor({
                         </button>
                       ) : null}
                     </div>
+                    <label className="amiriel-react-editor__field">
+                      <span>{resolvedLabels.textBlockLinkUrl}</span>
+                      <input
+                        type="url"
+                        value={linkDrafts[block.id] ?? block.href ?? ""}
+                        placeholder="https://"
+                        disabled={readOnly}
+                        aria-label={resolvedLabels.textBlockLinkUrl}
+                        onChange={(event) => setLinkDrafts((current) => ({ ...current, [block.id]: event.currentTarget.value }))}
+                        onBlur={(event) => commitTextHref(block.id, event.currentTarget.value)}
+                      />
+                    </label>
+                    {linkErrors[block.id] ? <p className="amiriel-react-editor__error">{linkErrors[block.id]}</p> : null}
                   </div>
                 ))}
               </div>
