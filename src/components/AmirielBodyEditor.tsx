@@ -13,7 +13,10 @@ import {
   AMIRIEL_TEXT_COLOR_OPTIONS,
   amirielThemeCssVars,
   calloutTargetFromPagePoint,
+  canPlaceFirstTextBlock,
   createAmirielId,
+  createTextBlock,
+  nextPageZ,
   findAmirielThemeDefinition,
   formatAmirielLabel,
   mediaAspectRatio,
@@ -72,13 +75,6 @@ export interface AmirielBodyEditorProps {
 
 type PaperDimension = "width" | "height";
 
-function nextZ(page: AmirielPage) {
-  return Math.max(
-    0,
-    ...(page.mediaPlacements ?? []).map((placement) => placement.z),
-    ...(page.textBlocks ?? []).map((block) => block.z),
-  ) + 1;
-}
 
 function syncPageMediaIds(page: AmirielPage) {
   page.mediaIds = Array.from(new Set((page.mediaPlacements ?? []).map((placement) => placement.mediaId)));
@@ -227,7 +223,7 @@ export function AmirielBodyEditor({
     }, nextSelectedId);
   }
 
-  function addTextBlock() {
+  function addTextBlock(point?: { x: number; y: number }) {
     if (readOnly || !selectedPage) return;
     if ((selectedPage.textBlocks ?? []).length >= resolvedLimits.maxTextBlocksPerPage) return;
     const blockId = createAmirielId("text");
@@ -235,18 +231,13 @@ export function AmirielBodyEditor({
     commit((next) => {
       const page = next.pages.find((item) => item.id === selectedPage.id);
       if (!page) return;
-      const block: AmirielTextBlock = {
+      const block = createTextBlock(page, {
         id: blockId,
-        x: 8,
-        y: 18 + (page.textBlocks ?? []).length * 10,
-        width: 56,
-        height: 18,
-        text: "",
-        z: nextZ(page),
+        ...(point ? { x: point.x, y: point.y } : {}),
         font: page.font || "handwritten",
         fontSize: 16,
         color: themeDefaultTextColorFor(next.theme, themes),
-      };
+      });
       page.textBlocks = [...(page.textBlocks ?? []), block];
       syncPageText(page);
     });
@@ -335,7 +326,7 @@ export function AmirielBodyEditor({
       const media = next.media.find((item) => item.id === mediaId);
       if (!page || !media || pageHasMedia(page, mediaId)) return;
       const aspectRatio = mediaAspectRatio(media);
-      const z = nextZ(page);
+      const z = nextPageZ(page);
       const offset = (z - 1) % 6;
       const x = 10 + (offset % 3) * 8;
       const y = 24 + Math.floor(offset / 3) * 8;
@@ -417,7 +408,7 @@ export function AmirielBodyEditor({
         const page = next.pages.find((item) => item.id === selectedPage.id);
         if (!page || pageHasMedia(page, media.id)) return;
         const aspectRatio = mediaAspectRatio(media);
-        const z = nextZ(page);
+        const z = nextPageZ(page);
         const offset = (z - 1) % 6;
         const x = 10 + (offset % 3) * 8;
         const y = 24 + Math.floor(offset / 3) * 8;
@@ -485,6 +476,9 @@ export function AmirielBodyEditor({
         <div className="amiriel-react-editor__workspace">
           <div className="amiriel-react-editor__preview">
             {placingBlockId ? <p className="amiriel-react-editor__empty">{resolvedLabels.calloutHint}</p> : null}
+            {!placingBlockId && !readOnly && canPlaceFirstTextBlock(selectedPage) ? (
+              <p className="amiriel-react-editor__empty">{resolvedLabels.tapPaperHint}</p>
+            ) : null}
             <AmirielBodyRenderer
               document={draft}
               pageIndex={selectedPageIndex}
@@ -495,7 +489,13 @@ export function AmirielBodyEditor({
               defaultPaperSize={defaultPaperSize}
               paperSizeLimits={paperSizeLimits}
               paperResizable={paperResizable}
-              onSurfacePoint={placingBlockId ? (point) => upsertCallout(placingBlockId, point) : undefined}
+              onSurfacePoint={
+                placingBlockId
+                  ? (point) => upsertCallout(placingBlockId, point)
+                  : !readOnly && canPlaceFirstTextBlock(selectedPage)
+                    ? (point) => addTextBlock(point)
+                    : undefined
+              }
             />
           </div>
         </div>
@@ -554,7 +554,7 @@ export function AmirielBodyEditor({
             <div className="amiriel-react-editor__panel-head">
               <h3>{label(resolvedLabels.textBlockLimit, { count: selectedPage?.textBlocks?.length ?? 0, max: resolvedLimits.maxTextBlocksPerPage })}</h3>
               {!readOnly ? (
-                <button type="button" onClick={addTextBlock} disabled={!selectedPage || (selectedPage.textBlocks?.length ?? 0) >= resolvedLimits.maxTextBlocksPerPage}>
+                <button type="button" onClick={() => addTextBlock()} disabled={!selectedPage || (selectedPage.textBlocks?.length ?? 0) >= resolvedLimits.maxTextBlocksPerPage}>
                   {resolvedLabels.addTextBlock}
                 </button>
               ) : null}
